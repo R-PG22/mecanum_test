@@ -1,3 +1,4 @@
+#include <map>
 #include "mbed.h"
 #include "FIRSTPENGUIN.hpp"
 
@@ -11,6 +12,20 @@ constexpr int Motor_Max_Power = 10000;
 float rx_X = 0;
 float rx_Y = 0;
 float rx_R = 0;
+std::map<int, std::pair<std::string, bool>> buttons = {
+    {0, {"Up", false}},
+    {1, {"Down", false}},
+    {2, {"Right", false}},
+    {3, {"Left", false}},
+    {4, {"Tri", false}},
+    {5, {"Cir", false}},
+    {6, {"Cro", false}},
+    {7, {"Squ", false}},
+    {8, {"L1", false}},
+    {9, {"R1", false}},
+    {10, {"L2", false}},
+    {11, {"R2", false}},
+};
 
 bool isnum(const char *c){
     // 引数のchar配列が数字のみか調べる
@@ -37,6 +52,11 @@ int main(){
             char c;
             int len = esp.read(&c, 1);
             if (len > 0){
+                // シリアルで来るコマンド:
+                // 'x' ... X軸値の終端
+                // 'y' ... Y軸値の終端
+                // 'r' ... R軸値の終端
+                // 'b' ... その直後に17文字の '0'/'1' が来る（ボタン状態）
                 if (c == 'x'){
                     if (buf_index > 0){
                         buf[buf_index] = '\0';
@@ -55,9 +75,19 @@ int main(){
                         buf_index = 0;
                         if (isnum(buf)) rx_R = adjust(stoi(buf));
                     }
+                }else if (c == 'b'){
+                    // ボタン状態の更新
+                    for(auto &b : buttons){
+                        b.second.second = buf[b.first] == '1' ? true : false;
+                    }
+                }
+                else{
+                    buf[buf_index++] = c;
+                    if (buf_index >= sizeof(buf) - 1){
+                        buf_index = 0; // バッファオーバーフロー防止
+                    }
                 }
             }
-        }
         auto antiover = [](float val){return min(static_cast<int>(val * Motor_Max_Power), Motor_Max_Power);};
         penguin.pwm[0] = antiover(- rx_X + rx_Y - rx_R);
         penguin.pwm[1] = antiover(+ rx_X + rx_Y - rx_R);
@@ -67,5 +97,6 @@ int main(){
         printf("%d %d %d %d\n",penguin.pwm[0],penguin.pwm[1],penguin.pwm[2],penguin.pwm[3]);
 
         penguin.send();
+        }
     }
 }
