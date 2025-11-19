@@ -64,6 +64,8 @@ int main(){
         penguin.pwm[2] = antiover(- rx_X - rx_Y - rx_R);
         penguin.pwm[3] = antiover(+ rx_X - rx_Y - rx_R);
 
+        printf("%d %d %d %d\n",penguin.pwm[0],penguin.pwm[1],penguin.pwm[2],penguin.pwm[3]);
+
         penguin.send();
     }
 }
